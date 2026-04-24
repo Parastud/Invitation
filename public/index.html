@@ -6,20 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <title>You're Invited</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&display=swap');
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        html,
-        body {
+        html, body {
             width: 100%;
             height: 100%;
             background: #000;
             overflow: hidden;
         }
 
+        /* ── TAP SCREEN ── */
         #tap-screen {
             position: fixed;
             inset: 0;
@@ -30,17 +32,24 @@
             justify-content: center;
             cursor: pointer;
             z-index: 10;
+            transition: opacity 0.6s ease;
         }
 
         .play-ring {
             width: 90px;
             height: 90px;
             border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255,255,255,0.25);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
+            animation: pulse-ring 2.4s ease-in-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.08); }
+            50%       { box-shadow: 0 0 0 14px rgba(255,255,255,0); }
         }
 
         .play-triangle {
@@ -48,17 +57,116 @@
             height: 0;
             border-top: 18px solid transparent;
             border-bottom: 18px solid transparent;
-            border-left: 30px solid rgba(255, 255, 255, 0.85);
+            border-left: 30px solid rgba(255,255,255,0.85);
             margin-left: 6px;
         }
 
         .tap-text {
-            color: rgba(255, 255, 255, 0.55);
-            font-family: -apple-system, sans-serif;
-            font-size: 15px;
-            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.45);
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
         }
 
+        /* ── LOADING SCREEN ── */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9;
+        }
+
+        /* Orbital loader */
+        .orbit-wrap {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            margin-bottom: 36px;
+        }
+
+        .orbit-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 1.5px solid transparent;
+        }
+
+        .orbit-ring.r1 {
+            border-top-color: rgba(255,255,255,0.7);
+            border-right-color: rgba(255,255,255,0.15);
+            animation: spin 1.2s linear infinite;
+        }
+
+        .orbit-ring.r2 {
+            inset: 14px;
+            border-top-color: rgba(255,255,255,0.4);
+            border-left-color: rgba(255,255,255,0.1);
+            animation: spin 1.8s linear infinite reverse;
+        }
+
+        .orbit-ring.r3 {
+            inset: 28px;
+            border-bottom-color: rgba(255,255,255,0.25);
+            animation: spin 2.6s linear infinite;
+        }
+
+        .orbit-dot {
+            position: absolute;
+            inset: 44px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 0 12px 4px rgba(255,255,255,0.3);
+            animation: dot-breathe 1.8s ease-in-out infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes dot-breathe {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50%       { transform: scale(1.3); opacity: 0.5; }
+        }
+
+        /* Progress bar */
+        .progress-track {
+            width: 200px;
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 1px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: rgba(255,255,255,0.75);
+            border-radius: 1px;
+            transition: width 0.25s ease;
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
+        }
+
+        .loading-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .loading-pct {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.55);
+            margin-bottom: 6px;
+        }
+
+        /* ── VIDEO ── */
         video {
             position: fixed;
             inset: 0;
@@ -67,12 +175,15 @@
             object-fit: contain;
             background: #000;
             display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
         }
     </style>
 </head>
 
 <body>
 
+    <!-- 1. Tap to start -->
     <div id="tap-screen">
         <div class="play-ring">
             <div class="play-triangle"></div>
@@ -80,41 +191,121 @@
         <span class="tap-text">tap to open</span>
     </div>
 
-    <video id="vid" src="test.mp4" autoplay
-        playsinline controls preload="auto"></video>
+    <!-- 2. Loading / buffering animation -->
+    <div id="loading-screen">
+        <div class="orbit-wrap">
+            <div class="orbit-ring r1"></div>
+            <div class="orbit-ring r2"></div>
+            <div class="orbit-ring r3"></div>
+            <div class="orbit-dot"></div>
+        </div>
+        <div class="loading-pct" id="pct-label">0%</div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="loading-label" id="loading-label">buffering</div>
+    </div>
+
+    <!-- 3. The video (hidden until ready) -->
+    <video id="vid" src="test.mp4" playsinline preload="auto"></video>
 
     <script>
-        const tapScreen = document.getElementById('tap-screen');
-        const vid = document.getElementById('vid');
+        const tapScreen     = document.getElementById('tap-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        const vid           = document.getElementById('vid');
+        const progressFill  = document.getElementById('progress-fill');
+        const pctLabel      = document.getElementById('pct-label');
+        const loadingLabel  = document.getElementById('loading-label');
 
-        tapScreen.addEventListener('click', async () => {
-            tapScreen.style.display = 'none';
-            vid.style.display = 'block';
+        // ── Threshold: play after this much is buffered (0–1) ──
+        const PLAY_THRESHOLD = 0.5; // 50% downloaded → start playing
 
-            // Request fullscreen — must be inside a user gesture (tap/click)
-            try {
-                if (vid.requestFullscreen) {
-                    await vid.requestFullscreen();
-                } else if (vid.webkitRequestFullscreen) {
-                    await vid.webkitRequestFullscreen(); // Safari desktop
-                } else if (vid.webkitEnterFullscreen) {
-                    vid.webkitEnterFullscreen(); // iOS Safari
+        let started = false;
+
+        function updateProgress() {
+            if (!vid.duration) return 0;
+            let buffered = 0;
+            for (let i = 0; i < vid.buffered.length; i++) {
+                if (vid.buffered.start(i) <= 0) {
+                    buffered = Math.max(buffered, vid.buffered.end(i));
                 }
-            } catch (e) { }
+            }
+            const ratio = Math.min(buffered / vid.duration, 1);
+            const pct   = Math.round(ratio * 100);
+            progressFill.style.width = pct + '%';
+            pctLabel.textContent     = pct + '%';
+            return ratio;
+        }
 
+        function showVideo() {
+            if (started) return;
+            started = true;
+
+            // Fade out loading screen
+            loadingScreen.style.transition = 'opacity 0.5s ease';
+            loadingScreen.style.opacity    = '0';
+            setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
+
+            // Show & play video
+            vid.style.display = 'block';
+            setTimeout(() => { vid.style.opacity = '1'; }, 50);
+
+            vid.play().catch(() => {});
+
+            // Fullscreen
             try {
-                await vid.play();
-            } catch (e) { }
+                if (vid.requestFullscreen)          vid.requestFullscreen();
+                else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
+                else if (vid.webkitEnterFullscreen)   vid.webkitEnterFullscreen();
+            } catch(e) {}
+        }
+
+        function checkBuffer() {
+            const ratio = updateProgress();
+            if (ratio >= PLAY_THRESHOLD) {
+                loadingLabel.textContent = 'ready';
+                setTimeout(showVideo, 300); // small pause so user sees 50%+
+            }
+        }
+
+        tapScreen.addEventListener('click', () => {
+            // Fade out tap screen
+            tapScreen.style.opacity = '0';
+            setTimeout(() => { tapScreen.style.display = 'none'; }, 600);
+
+            // Show loading screen
+            loadingScreen.style.display = 'flex';
+
+            // Force browser to start downloading
+            vid.load();
+
+            // Poll buffered range
+            const poll = setInterval(() => {
+                const ratio = updateProgress();
+                if (ratio >= PLAY_THRESHOLD) {
+                    clearInterval(poll);
+                    loadingLabel.textContent = 'ready';
+                    setTimeout(showVideo, 300);
+                }
+            }, 200);
+
+            // Also listen to native progress events
+            vid.addEventListener('progress', checkBuffer);
+            vid.addEventListener('canplaythrough', () => {
+                updateProgress();
+                clearInterval(poll);
+                showVideo();
+            });
         });
 
         // Keep video visible if user exits fullscreen
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement) {
-                vid.style.display = 'block';
+                vid.style.display  = 'block';
+                vid.style.opacity  = '1';
             }
         });
     </script>
 
 </body>
-
 </html>
